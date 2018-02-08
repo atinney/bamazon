@@ -18,6 +18,8 @@ connection.connect(function(err) {
 	if (err) throw err;
 	// console.log("connected as id " + connection.threadId);
 	bamazon();
+
+
 });
 
 
@@ -25,6 +27,8 @@ function bamazon() {
 
 	printItems();
 	menu();
+
+
 }
 
 
@@ -43,27 +47,41 @@ function menu(){
     }
 
 
-    ]).then((result)=>{
+    ]).then((customerRequest)=>{
 
 		//set a global variable to store a quantity calculation
-		var newQuant = 0;
+		// var newQuant = 0;
 
     	//change the quantity into a negative number
-    	var subtrQuant = -Math.abs(result.quantity);
+    	var subtrQuant = -Math.abs(customerRequest.quantity);
 
     	//subtract the quantity from the respective product in the db
-    	getNewQuant(result.product_id,subtrQuant);
+    	// getNewQuant(result.product_id,subtrQuant);
 
-    	console.log("This should be the second value" + newQuant);
+    		//get the current quantity
+		connection.query("SELECT stock_quantity FROM products WHERE ?", {
+			item_id: customerRequest.product_id
+			}, function(error, result) {
+			if(error) throw error;
 
-    	// buyProduct(result.product_id,newQuant);
+			var currentQuant = result[0].stock_quantity;
 
-    	//print the product list again
-    	printItems();
+			var newQuant = currentQuant + subtrQuant;
+			
+			//check and see if there are enough products to buy
+			if (newQuant >= 0){
+				buyProduct(customerRequest.product_id,newQuant);
 
+				console.log("Your product will be shipped shortly!");
+				//print the product list again
+				printItems();
+			}
 
-    	//close the connection
-    	connection.end();
+			else {
+				console.log("Insufficient quantity!");
+			}
+
+		});
 
     })
 }
@@ -90,32 +108,18 @@ function printItems() {
 	})
 };
 
-//calculate new quantity
-function getNewQuant(id,quant) {
-
-
-	//get the current quantity
-	connection.query("SELECT stock_quantity FROM products WHERE ?", {
-		item_id: id
-	}, function(error, result) {
-		if(error) throw error;
-		currentQuant = result[0].stock_quantity;
-
-		newQuant = currentQuant + quant;
-	});
-
-
-
-};
 
 //buy product 
 function buyProduct(id,quant){
 
-	connection.query("UPDATE products SET ? WHERE ?", {
-		stock_quantity: quant,
-		id: id
-		}, function(error, result) {
-			if(error) throw error;
-			console.log(result.affectedRows + "rows changed");
-	});
+var sql = "UPDATE products SET stock_quantity =" + quant + " WHERE item_id = " + id;
+
+connection.query(sql, function (err, result) {
+    if (err) throw err;
+    console.log(result.affectedRows + " record(s) updated");
+  });
+
 };
+
+
+
