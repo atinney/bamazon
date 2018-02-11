@@ -70,11 +70,16 @@ function menu(){
 			
 			//check and see if there are enough products to buy
 			if (newQuant >= 0){
-				buyProduct(customerRequest.product_id,newQuant);
+				buyProduct(customerRequest.product_id,newQuant, function(err, result) {
+					//print the product list again
+					printItems();
+					connection.end();
+				});
 
 				console.log("Your product will be shipped shortly!");
-				//print the product list again
-				printItems();
+
+
+				//end
 			}
 
 			else {
@@ -110,13 +115,14 @@ function printItems() {
 
 
 //buy product 
-function buyProduct(id,quant){
+function buyProduct(id,quant, callback){
 
 var sql = "UPDATE products SET stock_quantity =" + quant + " WHERE item_id = " + id;
 
 connection.query(sql, function (err, result) {
     if (err) throw err;
     console.log(result.affectedRows + " record(s) updated");
+    callback();
   });
 
 };
